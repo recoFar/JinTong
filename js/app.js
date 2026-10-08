@@ -75,7 +75,7 @@ function chipsHtml(tags){
 }
 function noteCardHtml(n){
   return '<a class="card" href="#note/' + encodeURIComponent(n.id) + '">'
-    + '<div class="card-meta"><time>' + escapeHtml(n.date||"") + '</time><span class="dot">·</span><span>' + (n.minutes||0) + " 分钟</span></div>"
+    + '<div class="card-meta"><time>' + escapeHtml(n.date||"") + '</time></div>'
     + "<h3>" + escapeHtml(n.title) + "</h3>"
     + "<p>" + escapeHtml(n.excerpt||"") + "</p>"
     + '<div class="card-foot tags">' + chipsHtml(n.tags) + "</div>"
@@ -130,7 +130,7 @@ function renderNote(id){
   box.innerHTML =
     '<a class="back-link" href="#notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>返回笔记列表</a>'
     + "<h1>" + escapeHtml(n.title) + "</h1>"
-    + '<div class="note-meta"><time>' + escapeHtml(n.date||"") + '</time><span class="dot">·</span><span>' + (n.minutes||0) + " 分钟</span><span class=\"dot\">·</span>" + chipsHtml(n.tags) + "</div>"
+    + '<div class="note-meta"><time>' + escapeHtml(n.date||"") + '</time><span class="dot">·</span>' + chipsHtml(n.tags) + "</div>"
     + '<div class="note-body">' + renderMarkdown(n.body) + "</div>";
 }
 function renderAll(){
