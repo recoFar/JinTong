@@ -1,0 +1,74 @@
+[
+  {
+    "id": "rag-principles",
+    "title": "RAG 原理与落地：从检索到生成的完整链路",
+    "date": "2026-09-28",
+    "minutes": 12,
+    "tags": [
+      "AI",
+      "RAG",
+      "LLM"
+    ],
+    "excerpt": "为什么需要 RAG、一条完整的检索增强链路是怎么跑通的，以及落地时最容易踩的坑。",
+    "body": "大模型存在知识截止时间与幻觉问题。RAG（检索增强生成）的思路是在生成前先从外部知识库中检索相关内容，把结果作为上下文喂给模型，让回答可以引用可追溯的来源，也方便随时更新知识而无需重新训练。\n\n## 为什么需要 RAG\n\n- **知识时效**：模型的训练数据有截止时间，无法回答其后发生的事\n- **幻觉控制**：没有依据的生成容易编造，检索结果提供了事实锚点\n- **可溯源**：回答可以引用具体文档，方便用户验证\n- **更新成本低**：换一批知识文档即可更新能力，不用重新训练\n\n## 一条典型的链路\n\n1. 文档切分（chunk 的大小与重叠度直接影响召回质量）\n2. 向量化（Embedding 模型的选择）\n3. 向量检索（近似最近邻）\n4. 重排序（用精排模型纠正召回结果）\n5. 生成（把检索结果拼进 Prompt）\n\n一个最小实现的大致样子：\n\n```python\nfrom langchain.text_splitter import RecursiveCharacterTextSplitter\nfrom langchain_community.vectorstores import FAISS\n\n# 1. 切分文档\nsplitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)\ndocs = splitter.split_documents(raw_docs)\n\n# 2. 向量化并建库\nvectorstore = FAISS.from_documents(docs, embedding_model)\n\n# 3. 检索 + 生成\nhits = vectorstore.similarity_search(question, k=5)\nanswer = llm.invoke(f\"请基于以下资料回答：\\n{context}\\n\\n问题：{question}\")\n```\n\n## 落地时的经验\n\n- 先用混合检索（关键词 + 向量）兜底长尾问题\n- 对答案做引用溯源，标注来源文档\n- 上线前一定要建评测集，用命中率和回答质量两个指标持续回归，而不是凭感觉调参\n"
+  },
+  {
+    "id": "ai-agent-intro",
+    "title": "AI Agent 开发入门：工具调用与工作流编排",
+    "date": "2026-09-15",
+    "minutes": 15,
+    "tags": [
+      "AI",
+      "Agent"
+    ],
+    "excerpt": "Agent 的本质是什么？从 ReAct 循环到工具调用，理解一个最小可用 Agent 的组成。",
+    "body": "Agent 可以理解为一个让大模型具备行动能力的框架：模型不再只输出文字，而是输出调用工具的指令，由程序执行后把结果反馈回来，如此循环直到任务完成。核心组件是规划、工具、记忆与执行。\n\n## ReAct 循环\n\n最经典的循环是 ReAct：思考（Reason）当前需要什么信息 → 行动（Act）调用工具 → 观察（Observe）返回结果 → 再次思考。工具调用通过 Function Calling 或结构化输出实现，关键是给模型清晰、准确的工具描述。\n\n```python\ntools = [\n    {\n        \"type\": \"function\",\n        \"function\": {\n            \"name\": \"get_weather\",\n            \"description\": \"查询指定城市的当前天气\",\n            \"parameters\": {\n                \"type\": \"object\",\n                \"properties\": {\"city\": {\"type\": \"string\"}},\n                \"required\": [\"city\"],\n            },\n        },\n    }\n]\n```\n\n## 最小 Agent 的组成\n\n| 组件 | 作用 | 常见实现 |\n| --- | --- | --- |\n| 模型 | 决策与生成 | GPT / Claude / 豆包大模型 |\n| 工具 | 与外部世界交互 | Function Calling、API 封装 |\n| 记忆 | 保存上下文与历史 | 消息列表、向量存储 |\n| 执行器 | 编排循环与错误处理 | LangChain、Coze 或手写循环 |\n\n## 入门建议\n\n- 先用一个简单任务（比如查天气 + 写总结）手工实现一遍完整循环，再接触框架，否则很容易被抽象层绕晕\n- 重视错误处理：工具失败、模型死循环、上下文超限都需要兜底\n- 给每个工具写清晰的中文描述，模型才知道什么时候该用它\n"
+  },
+  {
+    "id": "fastapi-practice",
+    "title": "Python 全栈实践：FastAPI 从接口到部署",
+    "date": "2026-08-30",
+    "minutes": 10,
+    "tags": [
+      "Python",
+      "全栈"
+    ],
+    "excerpt": "一次完整的 FastAPI 实践记录：项目结构、鉴权、文档，以及如何一步步部署上线。",
+    "body": "FastAPI 自带 OpenAPI 文档、基于 Pydantic 的请求校验和异步支持，非常适合快速搭建 AI 应用的后端。项目建议按功能模块分包：`routers`、`schemas`、`services`、`models` 各司其职，避免所有逻辑堆在一个文件里。\n\n## 项目结构\n\n```\napp/\n├── main.py          # 应用入口\n├── routers/         # 路由（按业务域拆分）\n├── schemas/         # Pydantic 请求/响应模型\n├── services/        # 业务逻辑\n└── models/          # 数据库模型\n```\n\n## 一个带鉴权的示例\n\n```python\nfrom fastapi import FastAPI, Depends, HTTPException\nfrom fastapi.security import HTTPBearer, HTTPAuthorizationCredentials\n\napp = FastAPI()\nsecurity = HTTPBearer()\n\ndef get_current_user(cred: HTTPAuthorizationCredentials = Depends(security)):\n    # 校验 JWT，返回用户信息\n    ...\n\n@app.get(\"/notes\")\ndef list_notes(user = Depends(get_current_user)):\n    return {\"user\": user.id, \"notes\": [...]}\n```\n\n鉴权部分用 JWT 是常见方案：登录接口签发 token，依赖注入统一做用户校验。数据库用 SQLAlchemy 或 Tortoise ORM，配合 Alembic 做迁移，保证表结构可版本化。\n\n## 部署链路\n\n- 本地 `uvicorn app.main:app --reload` 调试\n- Docker 镜像（多阶段构建瘦身）\n- 服务器上用 Docker Compose 或 gunicorn + Nginx 反向代理\n- 密钥放进环境变量，而不是写死在代码里\n"
+  },
+  {
+    "id": "docker-notes",
+    "title": "Docker 容器化部署笔记",
+    "date": "2026-08-12",
+    "minutes": 8,
+    "tags": [
+      "DevOps",
+      "Docker"
+    ],
+    "excerpt": "Dockerfile 编写、镜像瘦身与 Compose 编排的实操笔记。",
+    "body": "Docker 的核心价值是环境一致性：镜像把代码、依赖、运行时一起打包，本地和线上跑的是同一个东西。Dockerfile 是镜像的构建说明书，推荐用多阶段构建，把编译环境和运行环境分开。\n\n## 多阶段构建示例\n\n```dockerfile\n# 阶段一：编译 / 安装依赖\nFROM python:3.11-slim AS builder\nWORKDIR /app\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\n\n# 阶段二：精简运行镜像\nFROM python:3.11-slim\nWORKDIR /app\nCOPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages\nCOPY . .\nCMD [\"uvicorn\", \"app.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]\n```\n\n## 镜像瘦身的几个手段\n\n- 使用轻量基础镜像（如 `python:slim`、`alpine`）\n- 合并 `RUN` 指令减少层数\n- 清理安装缓存（`pip --no-cache-dir`）\n- 使用 `.dockerignore` 排除无关文件\n\n## Compose 编排\n\n单容器解决不了的问题交给 docker-compose：一个 yaml 文件即可编排应用、数据库、Redis 多个服务，配上 `depends_on` 控制启动顺序。\n\n```yaml\nservices:\n  app:\n    build: .\n    ports: [\"8000:8000\"]\n    environment:\n      - DB_HOST=db\n  db:\n    image: mysql:8.0\n    environment:\n      - MYSQL_ROOT_PASSWORD=secret\n```\n\n开发环境一键起，非常省心。\n"
+  },
+  {
+    "id": "mysql-index-transaction",
+    "title": "MySQL 索引与事务：面试高频考点梳理",
+    "date": "2026-07-25",
+    "minutes": 9,
+    "tags": [
+      "数据库"
+    ],
+    "excerpt": "把索引失效场景、事务隔离级别与 MVCC 这些高频考点一次理清。",
+    "body": "MySQL 的 InnoDB 用 B+ 树做索引：主键是聚簇索引，数据行挂在叶子节点上；二级索引只存主键值，回表需要再查一次聚簇索引。覆盖索引能避免回表，是常见优化手段。\n\n## 索引失效的高频场景\n\n- 对索引列使用函数或运算，如 `WHERE YEAR(create_time) = 2026`\n- 隐式类型转换，如索引是字符串却传入数字\n- 不满足最左前缀原则\n- `LIKE` 以通配符开头，如 `LIKE '%abc'`\n\n记住这些，就能在排查慢查询时快速定位问题。\n\n## 隔离级别与现象\n\n| 隔离级别 | 脏读 | 不可重复读 | 幻读 |\n| --- | --- | --- | --- |\n| 读未提交 | 可能 | 可能 | 可能 |\n| 读已提交 | 不会 | 可能 | 可能 |\n| 可重复读（默认） | 不会 | 不会 | 基本解决 |\n| 串行化 | 不会 | 不会 | 不会 |\n\nMySQL 默认是可重复读，靠 MVCC（多版本并发控制）实现非锁定读，配合当前读与间隙锁解决幻读。理解这四个隔离级别对应的现象，基本就能应付大多数面试问题。\n"
+  },
+  {
+    "id": "mes-project-review",
+    "title": "MES 项目实施复盘：从业务调研到上线",
+    "date": "2026-06-30",
+    "minutes": 14,
+    "tags": [
+      "复盘",
+      "MES"
+    ],
+    "excerpt": "一段制药行业 MES 项目的实施经历复盘：业务理解比技术实现更难。",
+    "body": "MES（制造执行系统）项目的第一步是业务调研：物料主数据、BOM、工艺路线、电子批记录、工单执行、设备与质量联动，每一条业务规则都要和车间主管反复确认，因为系统上线后约束的是真实的生产流程。\n\n## 核心模块\n\n- **基础数据建模**：工厂层级、物料、配方、工序\n- **工单管理**：与 ERP 同步生产工单，下达、派工、报工\n- **电子批记录**：工序数据采集、审计追溯\n- **配方管理**：版本控制与审批流\n- **工序联锁**：条件不满足不允许放行，保证合规\n\n## 复盘体会\n\n1. MES 是管理思想的软件化，需求变更的根源往往在流程本身，而不是系统\n2. 上线前做好 UAT（用户验收测试）和操作培训，比写再多代码都重要\n3. 把关键用户培养成内部支持者，后续运维才能顺畅\n4. 电子批记录的完整性与审计追溯，在制药行业是合规硬要求，不能妥协\n"
+  }
+]

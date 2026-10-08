@@ -1,0 +1,38 @@
+[
+  {
+    "name": "JinTong Blog",
+    "desc": "本博客：HTML/CSS/JS 构建的静态个人博客，笔记以 Markdown 存放于 notes/ 目录，部署于 GitHub Pages。",
+    "tags": ["前端", "GitHub Pages"],
+    "url": "https://github.com/recoFar/JinTong-Blog"
+  },
+  {
+    "name": "智能问答助手（示例）",
+    "desc": "基于 RAG 的个人知识库问答应用：文档上传、向量化检索、引用溯源，后端使用 FastAPI。",
+    "tags": ["AI", "RAG", "Python"],
+    "url": "https://github.com/recoFar"
+  },
+  {
+    "name": "简历生成器（示例）",
+    "desc": "在线简历编辑与导出工具：JSON 配置驱动，一键导出 PDF，支持多套模板。",
+    "tags": ["效率工具", "Python"],
+    "url": "https://github.com/recoFar"
+  },
+  {
+    "name": "自动化办公脚本集（示例）",
+    "desc": "日常办公自动化脚本合集：Excel 批处理、文件整理、定时任务，减少重复劳动。",
+    "tags": ["效率工具", "Python"],
+    "url": "https://github.com/recoFar"
+  },
+  {
+    "name": "学生成绩管理系统（示例）",
+    "desc": "课程设计的全栈小项目：教师录入、学生查询、成绩统计，前后端分离。",
+    "tags": ["全栈", "MySQL"],
+    "url": "https://github.com/recoFar"
+  },
+  {
+    "name": "MES 电子批记录模块（示例）",
+    "desc": "制造执行系统中的电子批记录模块设计：工序数据采集、联锁校验与审计追溯。",
+    "tags": ["MES", "工业软件"],
+    "url": "https://github.com/recoFar"
+  }
+]
