@@ -37,18 +37,6 @@
     "body": "FastAPI 自带 OpenAPI 文档、基于 Pydantic 的请求校验和异步支持，非常适合快速搭建 AI 应用的后端。项目建议按功能模块分包：`routers`、`schemas`、`services`、`models` 各司其职，避免所有逻辑堆在一个文件里。\n\n## 项目结构\n\n```\napp/\n├── main.py          # 应用入口\n├── routers/         # 路由（按业务域拆分）\n├── schemas/         # Pydantic 请求/响应模型\n├── services/        # 业务逻辑\n└── models/          # 数据库模型\n```\n\n## 一个带鉴权的示例\n\n```python\nfrom fastapi import FastAPI, Depends, HTTPException\nfrom fastapi.security import HTTPBearer, HTTPAuthorizationCredentials\n\napp = FastAPI()\nsecurity = HTTPBearer()\n\ndef get_current_user(cred: HTTPAuthorizationCredentials = Depends(security)):\n    # 校验 JWT，返回用户信息\n    ...\n\n@app.get(\"/notes\")\ndef list_notes(user = Depends(get_current_user)):\n    return {\"user\": user.id, \"notes\": [...]}\n```\n\n鉴权部分用 JWT 是常见方案：登录接口签发 token，依赖注入统一做用户校验。数据库用 SQLAlchemy 或 Tortoise ORM，配合 Alembic 做迁移，保证表结构可版本化。\n\n## 部署链路\n\n- 本地 `uvicorn app.main:app --reload` 调试\n- Docker 镜像（多阶段构建瘦身）\n- 服务器上用 Docker Compose 或 gunicorn + Nginx 反向代理\n- 密钥放进环境变量，而不是写死在代码里\n"
   },
   {
-    "id": "docker-notes",
-    "title": "Docker 容器化部署笔记",
-    "date": "2026-08-12",
-    "minutes": 8,
-    "tags": [
-      "DevOps",
-      "Docker"
-    ],
-    "excerpt": "Dockerfile 编写、镜像瘦身与 Compose 编排的实操笔记。",
-    "body": "Docker 的核心价值是环境一致性：镜像把代码、依赖、运行时一起打包，本地和线上跑的是同一个东西。Dockerfile 是镜像的构建说明书，推荐用多阶段构建，把编译环境和运行环境分开。\n\n## 多阶段构建示例\n\n```dockerfile\n# 阶段一：编译 / 安装依赖\nFROM python:3.11-slim AS builder\nWORKDIR /app\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\n\n# 阶段二：精简运行镜像\nFROM python:3.11-slim\nWORKDIR /app\nCOPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages\nCOPY . .\nCMD [\"uvicorn\", \"app.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]\n```\n\n## 镜像瘦身的几个手段\n\n- 使用轻量基础镜像（如 `python:slim`、`alpine`）\n- 合并 `RUN` 指令减少层数\n- 清理安装缓存（`pip --no-cache-dir`）\n- 使用 `.dockerignore` 排除无关文件\n\n## Compose 编排\n\n单容器解决不了的问题交给 docker-compose：一个 yaml 文件即可编排应用、数据库、Redis 多个服务，配上 `depends_on` 控制启动顺序。\n\n```yaml\nservices:\n  app:\n    build: .\n    ports: [\"8000:8000\"]\n    environment:\n      - DB_HOST=db\n  db:\n    image: mysql:8.0\n    environment:\n      - MYSQL_ROOT_PASSWORD=secret\n```\n\n开发环境一键起，非常省心。\n"
-  },
-  {
     "id": "mysql-index-transaction",
     "title": "MySQL 索引与事务：面试高频考点梳理",
     "date": "2026-07-25",
@@ -70,5 +58,29 @@
     ],
     "excerpt": "一段制药行业 MES 项目的实施经历复盘：业务理解比技术实现更难。",
     "body": "MES（制造执行系统）项目的第一步是业务调研：物料主数据、BOM、工艺路线、电子批记录、工单执行、设备与质量联动，每一条业务规则都要和车间主管反复确认，因为系统上线后约束的是真实的生产流程。\n\n## 核心模块\n\n- **基础数据建模**：工厂层级、物料、配方、工序\n- **工单管理**：与 ERP 同步生产工单，下达、派工、报工\n- **电子批记录**：工序数据采集、审计追溯\n- **配方管理**：版本控制与审批流\n- **工序联锁**：条件不满足不允许放行，保证合规\n\n## 复盘体会\n\n1. MES 是管理思想的软件化，需求变更的根源往往在流程本身，而不是系统\n2. 上线前做好 UAT（用户验收测试）和操作培训，比写再多代码都重要\n3. 把关键用户培养成内部支持者，后续运维才能顺畅\n4. 电子批记录的完整性与审计追溯，在制药行业是合规硬要求，不能妥协\n"
+  },
+  {
+    "id": "docker-notes",
+    "title": "Docker 容器化部署笔记",
+    "date": "2026-04-02",
+    "minutes": 8,
+    "tags": [
+      "DevOps",
+      "Docker"
+    ],
+    "excerpt": "Dockerfile 编写、镜像瘦身与 Compose 编排的实操笔记。",
+    "body": "Docker 的核心价值是环境一致性：镜像把代码、依赖、运行时一起打包，本地和线上跑的是同一个东西。Dockerfile 是镜像的构建说明书，推荐用多阶段构建，把编译环境和运行环境分开。\n\n## 多阶段构建示例\n\n```dockerfile\n# 阶段一：编译 / 安装依赖\nFROM python:3.11-slim AS builder\nWORKDIR /app\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\n\n# 阶段二：精简运行镜像\nFROM python:3.11-slim\nWORKDIR /app\nCOPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages\nCOPY . .\nCMD [\"uvicorn\", \"app.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]\n```\n\n## 镜像瘦身的几个手段\n\n- 使用轻量基础镜像（如 `python:slim`、`alpine`）\n- 合并 `RUN` 指令减少层数\n- 清理安装缓存（`pip --no-cache-dir`）\n- 使用 `.dockerignore` 排除无关文件\n\n## Compose 编排\n\n单容器解决不了的问题交给 docker-compose：一个 yaml 文件即可编排应用、数据库、Redis 多个服务，配上 `depends_on` 控制启动顺序。\n\n```yaml\nservices:\n  app:\n    build: .\n    ports: [\"8000:8000\"]\n    environment:\n      - DB_HOST=db\n  db:\n    image: mysql:8.0\n    environment:\n      - MYSQL_ROOT_PASSWORD=secret\n```\n\n开发环境一键起，非常省心。\n"
+  },
+  {
+    "id": "Docker常用命令",
+    "title": "Docker常用命令",
+    "date": "2026-04-02",
+    "minutes": 8,
+    "tags": [
+      "DevOps",
+      "Docker"
+    ],
+    "excerpt": "Docker的常用命令",
+    "body": "| **命令**              | **功能**                                                     | **示例**                                                     |\n| --------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |\n| `docker run`          | 启动一个新的容器并运行命令                                   | `docker run -d ubuntu`                                       |\n| `docker ps`           | 列出当前正在运行的容器                                       | `docker ps`                                                  |\n| `docker port`         | 查看指定 （ID 或者名字）容器的某个确定端口映射到宿主机的端口号 | `docker port bf08b7f2cd89`                                   |\n| `docker  top`         | 查看容器内部运行的进程                                       | `docker top c6ce2bc8ae5d `                                   |\n| `docker ps -a`        | 列出所有容器（包括已停止的容器）                             | `docker ps -a`                                               |\n| `docker build`        | 使用 Dockerfile 构建镜像                                     | `docker build -t my-image .`                                 |\n| `docker images`       | 列出本地存储的所有镜像                                       | `docker images`                                              |\n| `docker pull`         | 从 Docker 仓库拉取镜像                                       | `docker pull ubuntu`                                         |\n| `docker push`         | 将镜像推送到 Docker 仓库                                     | `docker push my-image`                                       |\n| `docker exec`         | 在运行的容器中执行命令                                       | `docker exec -it container_name bash`                        |\n| `docker stop`         | 停止一个或多个容器                                           | `docker stop container_name`                                 |\n| `docker start`        | 启动已停止的容器                                             | `docker start container_name`                                |\n| `docker restart`      | 重启一个容器                                                 | `docker restart container_name`                              |\n| `docker rm`           | 删除一个或多个容器                                           | `docker rm container_name`                                   |\n| `docker rmi`          | 删除一个或多个镜像                                           | `docker rmi my-image`                                        |\n| `docker logs`         | 查看容器的日志                                               | `docker logs container_name`                                 |\n| `docker inspect`      | 获取容器或镜像的详细信息                                     | `docker inspect container_name`                              |\n| `docker exec -it`     | 进入容器的交互式终端通过此命令进入容器，若在此容器退出(`exit`)，则容器不会停止 | `docker exec -it container_name /bin/bash`                   |\n| `docker attach `      | 进入容器的交互式终端通过此命令进入容器，若在此容器退出(`exit`)，则容器会停止 | `docker attach  container_name /bin/bash`                    |\n| `docker network ls`   | 列出所有 Docker 网络                                         | `docker network ls`                                          |\n| `docker volume ls`    | 列出所有 Docker 卷                                           | `docker volume ls`                                           |\n| `docker-compose up`   | 启动多容器应用（从 `docker-compose.yml` 文件）               | `docker-compose up`                                          |\n| `docker-compose down` | 停止并删除由 `docker-compose` 启动的容器、网络等             | `docker-compose down`                                        |\n| `docker info`         | 显示 Docker 系统的详细信息                                   | `docker info`                                                |\n| `docker version`      | 显示 Docker 客户端和守护进程的版本信息                       | `docker version`                                             |\n| `docker stats`        | 显示容器的实时资源使用情况                                   | `docker stats`                                               |\n| `docker login`        | 登录 Docker 仓库                                             | `docker login`                                               |\n| `docker logout`       | 登出 Docker 仓库                                             | `docker logout`                                              |\n| `docker export`       | 导出某个容器快照到本地文件                                   | `docker export 1e560fca3906 > ubuntu.tar`                    |\n| `docker import`       | 导入容器快照                                                 | `cat docker/ubuntu.tar | docker import - test/ubuntu:v1`将快照文件 ubuntu.tar 导入到镜test/ubuntu:v1`#也可以通过指定 URL 或者某个目录来导入 docker import http://example.com/exampleimage.tgz example/imagerepo` |\n|                       |                                                              |                                                              |\n\n"
   }
 ]
