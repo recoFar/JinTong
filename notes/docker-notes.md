@@ -1,6 +1,6 @@
 ---
 title: Docker 容器化部署笔记
-date: 2026-08-12
+date: 2026-04-02
 minutes: 8
 tags: [DevOps, Docker]
 excerpt: Dockerfile 编写、镜像瘦身与 Compose 编排的实操笔记。
